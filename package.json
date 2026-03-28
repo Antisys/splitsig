@@ -1,0 +1,40 @@
+{
+  "name": "splitsig",
+  "version": "0.1.0",
+  "description": "Non-custodial key derivation from LNURL-auth signatures",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test test/splitsig.test.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "bitcoin", "lightning", "lnurl", "lnurl-auth",
+    "nostr", "key-derivation", "non-custodial",
+    "secp256k1", "ecdsa", "schnorr", "splitsig"
+  ],
+  "author": "Ralf Dittmer <ralf@antisys.io>",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Antisys/splitsig"
+  },
+  "homepage": "https://github.com/Antisys/splitsig",
+  "dependencies": {
+    "@noble/hashes": "^1.7.1",
+    "@noble/secp256k1": "^2.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
