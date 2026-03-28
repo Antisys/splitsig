@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SplitSig — Non-Custodial Key Derivation</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <span class="logo">
+        <img src="logo.svg" alt="SplitSig" class="logo-icon">
+        <span class="logo-name"><span class="logo-split">Split</span><span class="logo-sig">Sig</span></span>
+      </span>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="intro">
+      <h1>Non-Custodial Key Derivation</h1>
+      <p class="text-muted">Interactive walkthrough: derive an escrow signing key from a Lightning wallet without the server ever having access to the private key.</p>
+    </div>
+
+    <div class="card flow-overview">
+      <h3>The Protocol</h3>
+      <pre class="flow-diagram">escrow_privkey = SHA256( ecdsa_signature + nonce )
+                         ───────────────   ─────
+                         server sees this   only in recovery kit
+                         (LNURL-auth)       (user holds this)
+
+Neither piece alone can derive the key.</pre>
+    </div>
+
+    <!-- Step 1: Nonce -->
+    <div class="step" id="step-1">
+      <div class="step-header">
+        <span class="step-num">1</span>
+        <h2>Generate Nonce</h2>
+        <span class="step-badge" id="badge-1">waiting</span>
+      </div>
+      <p class="text-muted">The browser generates a random 32-byte nonce. This nonce never leaves the browser.</p>
+      <div class="card">
+        <button id="btn-gen-nonce" class="btn-primary">Generate Nonce</button>
+        <div id="nonce-result" hidden>
+          <div class="detail"><span class="text-muted">Nonce</span></div>
+          <div class="code-box"><code id="nonce-value"></code></div>
+          <p class="where-tag">exists: <strong>browser only</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: LNURL-auth -->
+    <div class="step" id="step-2">
+      <div class="step-header">
+        <span class="step-num">2</span>
+        <h2>LNURL-auth</h2>
+        <span class="step-badge" id="badge-2">waiting</span>
+      </div>
+      <p class="text-muted">Request an auth challenge, wallet signs it with deterministic ECDSA. The signature passes through the server.</p>
+      <div class="card">
+        <label for="service-url">Escrow service</label>
+        <input id="service-url" type="text" value="https://ark-api.trustbro.trade">
+        <label for="deal-id">Deal ID (leave empty to auto-create)</label>
+        <input id="deal-id" type="text" placeholder="auto-creates a test deal">
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="seller">Seller</option>
+          <option value="buyer">Buyer</option>
+        </select>
+        <button id="btn-auth" class="btn-primary" disabled>Request Auth Challenge</button>
+        <div id="auth-qr" class="qr-section" hidden>
+          <div id="qr-container"></div>
+          <p class="text-muted text-sm" id="auth-status-text">Scan with your Lightning wallet...</p>
+        </div>
+        <div id="sig-result" hidden>
+          <div class="detail"><span class="text-muted">k1 (challenge)</span></div>
+          <div class="code-box"><code id="k1-value"></code></div>
+          <div class="detail mt"><span class="text-muted">ECDSA Signature</span></div>
+          <div class="code-box"><code id="sig-value"></code></div>
+          <div class="detail mt"><span class="text-muted">Linking Pubkey</span></div>
+          <div class="code-box"><code id="linking-pubkey-value"></code></div>
+          <p class="where-tag">signature exists: <strong>server + browser</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Derive key -->
+    <div class="step" id="step-3">
+      <div class="step-header">
+        <span class="step-num">3</span>
+        <h2>Derive Escrow Key</h2>
+        <span class="step-badge" id="badge-3">waiting</span>
+      </div>
+      <p class="text-muted">Compute <code>SHA256(signature + nonce)</code>. The server has the signature but not the nonce. Only the browser can derive the key.</p>
+      <div class="card">
+        <button id="btn-derive" class="btn-primary" disabled>Derive Key</button>
+        <div id="derive-result" hidden>
+          <div class="detail"><span class="text-muted">Input</span></div>
+          <div class="code-box"><code id="derive-input"></code></div>
+          <div class="detail mt"><span class="text-muted">Escrow Private Key</span></div>
+          <div class="code-box highlight-green"><code id="privkey-value"></code></div>
+          <div class="detail mt"><span class="text-muted">Escrow Public Key (x-only)</span></div>
+          <div class="code-box"><code id="pubkey-value"></code></div>
+          <p class="where-tag">private key: <strong>browser only</strong></p>
+          <p class="where-tag">public key sent to: <strong>server</strong> (goes into tapscript)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Register -->
+    <div class="step" id="step-4">
+      <div class="step-header">
+        <span class="step-num">4</span>
+        <h2>Register Public Key</h2>
+        <span class="step-badge" id="badge-4">waiting</span>
+      </div>
+      <p class="text-muted">Send only the public key to the server. It goes into the 4-leaf tapscript escrow. The private key never leaves the browser.</p>
+      <div class="card">
+        <button id="btn-register" class="btn-primary" disabled>Send Pubkey to Server</button>
+        <div id="register-result" hidden>
+          <p class="success-text">Public key registered.</p>
+          <p class="where-tag">Server stores: <strong>public key only</strong></p>
+          <p class="where-tag">Server has: <strong>signature</strong> (from step 2)</p>
+          <p class="where-tag">Server does NOT have: <strong>nonce</strong> (from step 1)</p>
+          <p class="where-tag">Server CANNOT derive: <strong>private key</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Recovery kit -->
+    <div class="step" id="step-5">
+      <div class="step-header">
+        <span class="step-num">5</span>
+        <h2>Recovery Kit</h2>
+        <span class="step-badge" id="badge-5">waiting</span>
+      </div>
+      <p class="text-muted">The recovery kit contains the nonce + deal parameters. Same wallet + this kit = same key, on any device, even if the service is down.</p>
+      <div class="card">
+        <button id="btn-kit" class="btn-primary" disabled>Generate Recovery Kit</button>
+        <div id="kit-result" hidden>
+          <div class="code-box code-scroll"><code id="kit-json"></code></div>
+          <p class="where-tag">exists: <strong>user's download only</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="step" id="step-summary" hidden>
+      <div class="card flow-overview">
+        <h3>Security Summary</h3>
+        <table class="summary-table">
+          <tr><th>Piece</th><th>Server</th><th>Browser</th><th>Recovery Kit</th></tr>
+          <tr><td>ECDSA Signature</td><td class="yes">yes</td><td class="yes">yes</td><td>no</td></tr>
+          <tr><td>Nonce</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+          <tr><td>Private Key</td><td class="no">no</td><td class="yes">yes</td><td>no (derived)</td></tr>
+          <tr><td>Public Key</td><td class="yes">yes</td><td class="yes">yes</td><td>no</td></tr>
+        </table>
+        <p class="text-muted summary-note">The server sees the signature (inherent to LNURL-auth) but never the nonce. Without both pieces, the private key cannot be derived. Verifiable from <a href="https://github.com/Antisys/splitsig">source</a>.</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="demo.js"></script>
+</body>
+</html>
