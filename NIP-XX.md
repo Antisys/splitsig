@@ -8,6 +8,8 @@ Key Derivation from LNURL-auth via Split-Knowledge Nonce (SplitSig)
 
 This NIP describes a method for deriving a Nostr signing keypair from an LNURL-auth interaction, without the authenticating server being able to derive the private key.
 
+LNURL-auth (LUD-04) lets users sign into web services by scanning a QR code with their Lightning wallet — no username, no password. The wallet signs a challenge with a domain-specific key derived from its BIP-32 seed, proving identity without exposing the seed.
+
 Motivation
 ----------
 
